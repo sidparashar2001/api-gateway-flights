@@ -2,7 +2,8 @@ const { UserRepository } = require("../repositories");
 const userRepo = new UserRepository();
 const AppError = require("../utils/errors/app-error");
 const { StatusCodes } = require("http-status-codes");
-const {Auth} = require("../utils/common");
+const { Auth } = require("../utils/common");
+const { log } = require("winston");
 
 async function create(data) {
     try {
@@ -27,14 +28,37 @@ async function signIn(data) {
             throw new AppError('No user found for the given email', StatusCodes.NOT_FOUND);
         }
         const passwordMatch = Auth.checkPassword(data.password, user.password);
-        if(!passwordMatch){
+        if (!passwordMatch) {
             throw new AppError('Invalid password', StatusCodes.BAD_REQUEST);
         }
-        const jwt = Auth.createToken({id:user.id, email: user.email});
+        const jwt = Auth.createToken({ id: user.id, email: user.email });
         return jwt;
     } catch (error) {
-        if(error instanceof AppError){
+        if (error instanceof AppError) {
             throw error;
+        }
+        console.log(error);
+        throw new AppError("Something went wrong", StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+}
+
+async function isAuthenticated(token) {
+    try {
+        if (!token) {
+            throw new AppError('Token not found', StatusCodes.BAD_REQUEST);
+        }
+        const response = Auth.verifyToken(token);
+        const user = await userRepo.get(response.id);
+        if (!user) {
+            throw new AppError('No user found ', StatusCodes.NOT_FOUND);
+        }
+    } catch (error) {
+        if (error instanceof AppError) throw error;
+        if (error.name == 'JsonWebTokenError') {
+            throw new AppError('Invalid JWT token', StatusCodes.BAD_REQUEST);
+        }
+        if (error.name == 'TokenExpiredError') {
+            throw new AppError('JWT token expired', StatusCodes.BAD_REQUEST);
         }
         console.log(error);
         throw new AppError("Something went wrong", StatusCodes.INTERNAL_SERVER_ERROR);
@@ -43,5 +67,6 @@ async function signIn(data) {
 
 module.exports = {
     create,
-    signIn
+    signIn,
+    isAuthenticated
 }
