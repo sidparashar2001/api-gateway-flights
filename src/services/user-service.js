@@ -52,6 +52,7 @@ async function isAuthenticated(token) {
         if (!user) {
             throw new AppError('No user found ', StatusCodes.NOT_FOUND);
         }
+        return user.id;
     } catch (error) {
         if (error instanceof AppError) throw error;
         if (error.name == 'JsonWebTokenError') {
