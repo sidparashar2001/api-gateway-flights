@@ -6,7 +6,7 @@ const user = require('../../models/user');
 const router = express.Router();
 const {AuthRequestMiddlewares} = require("../../middlewares");
 
-router.get("/info", AuthRequestMiddlewares.checkAuth, infoController.info)
+router.get("/info", infoController.info)
 
 router.use("/user", userRouter);
 
